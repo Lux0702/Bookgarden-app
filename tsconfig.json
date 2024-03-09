@@ -1,0 +1,9 @@
+{
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true
+  },
+  "include": ["src/**/*.tsx", "src/**/*.ts", "src/**/*.js", "src/**/*.json", "src/**/*.png", "src/**/*.jpg","src/**/*.svg"]
+}
