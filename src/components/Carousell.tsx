@@ -22,7 +22,10 @@ const CarouselComponent: React.FC = () => {
   const renderItem = ({item}: {item: CarouselItem}) => {
     return (
       <View style={styles.itemContainer}>
-        <Image source={item.image} style={styles.itemImage} />
+        <Image
+          source={item !== null ? item.image : ''}
+          style={styles.itemImage}
+        />
       </View>
     );
   };

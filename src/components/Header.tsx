@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   SafeAreaView,
   Text,
@@ -7,13 +7,29 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
+  Pressable,
 } from 'react-native';
 
-const Header = ({onLogout}) => {
+const Header = ({navigation, searchKey}: any) => {
   const [search, setSearch] = useState('');
-  //   const [filteredDataSource, setFilteredDataSource] = useState([]);
-  //   const [masterDataSource, setMasterDataSource] = useState([]);
-  //   const [showFlatList, setShowFlatList] = useState(false); // Biến trạng thái để xác định xem có hiển thị FlatList hay không
+  const handleFocusSearch = () => {
+    navigation.navigate('SearchPage');
+  };
+  useEffect(() => {
+    if (searchKey) {
+      setSearch(searchKey);
+    }
+  }, [searchKey]);
+  const handleDeleteItem = useCallback(async () => {
+    try {
+      setSearch('');
+      await navigation.navigate('ListBook', {
+        searchKey: '',
+      });
+    } catch (error) {
+      console.log('Error:', error);
+    }
+  }, [navigation]);
 
   return (
     <SafeAreaView>
@@ -24,9 +40,14 @@ const Header = ({onLogout}) => {
               source={require('../assets/icons/icon_book.png')}
               style={styles.icon}
             />
-            <Text style={styles.title}>Book Garden</Text>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('Home');
+              }}>
+              <Text style={styles.title}>Book Garden</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={onLogout}>
+          <TouchableOpacity>
             <Image
               source={require('../assets/icons/notification-bing.png')}
               style={styles.notificationIcon}
@@ -43,7 +64,18 @@ const Header = ({onLogout}) => {
             value={search}
             underlineColorAndroid="transparent"
             placeholder="Tìm kiếm..."
+            onFocus={handleFocusSearch}
+            onChangeText={text => setSearch(text)}
           />
+          <TouchableOpacity onPress={() => handleDeleteItem()}>
+            <Image
+              source={require('../assets/icons/icon_delete.png')}
+              style={[
+                styles.deleteIcon,
+                {display: search === '' ? 'none' : 'flex'},
+              ]}
+            />
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -54,10 +86,15 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
     marginTop: 30,
-    // flex: 1,
   },
   itemStyle: {
     padding: 10,
+  },
+  deleteIcon: {
+    marginTop: 10,
+    width: 20,
+    height: 20,
+    alignSelf: 'center',
   },
   textInputStyle: {
     flexDirection: 'row',
@@ -72,10 +109,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: '#F3F4F6',
     color: '#9CA3AF',
+    justifyContent: 'space-between',
   },
   inputSearch: {
     color: '#9CA3AF',
     fontSize: 15,
+    width: '80%',
   },
   TitleContainer: {
     flexDirection: 'row',
@@ -114,6 +153,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginTop: 20,
   },
 });
 

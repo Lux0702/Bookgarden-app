@@ -7,17 +7,23 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import PropTypes from 'prop-types';
 import tw from 'tailwind-react-native-classnames';
 import {API_BASE} from '../utils/utils';
 import {addUser} from '../service/AuthService';
+import {useNavigation} from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
+import Spinner from 'react-native-loading-spinner-overlay';
 
-export default function LoginPage({navigation}: {navigation: any}) {
+export default function LoginPage() {
   const [passWord, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const navigation = useNavigation();
+  const [spining, setSpining] = useState(false);
+
   const Login = async () => {
     console.log('email: ', email);
     console.log('password : ', passWord);
+    setSpining(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: 'POST',
@@ -29,12 +35,26 @@ export default function LoginPage({navigation}: {navigation: any}) {
       if (response.ok) {
         console.log('Đăng nhập thành công');
         addUser(email, email, passWord);
-        navigation.navigate('Home');
+        Toast.show({
+          type: 'success',
+          text1: 'Đăng nhập ',
+          text2: 'Đăng nhập thành công',
+        }); // Hiển thị thông báo thành công
+        setTimeout(() => {
+          navigation.navigate('Home');
+        }, 1000);
       } else {
-        console.error('Đăng nhập không thành công');
+        console.log('Đăng nhập không thành công');
+        Toast.show({
+          type: 'error',
+          text1: 'Đăng nhập ',
+          text2: 'Emal hoặc mật khẩu không đúng',
+        });
       }
     } catch (error) {
-      console.error('Lỗi:', error);
+      console.log('Lỗi:', error);
+    } finally {
+      setSpining(false);
     }
   };
 
@@ -82,6 +102,7 @@ export default function LoginPage({navigation}: {navigation: any}) {
           style={styles.input}
           placeholder="Mật khẩu"
           value={passWord}
+          secureTextEntry={true}
           onChangeText={text => setPassword(text)}
         />
       </View>
@@ -97,7 +118,7 @@ export default function LoginPage({navigation}: {navigation: any}) {
       </TouchableOpacity>
       <Text
         style={styles.SignIntext}
-        onPress={() => navigation.navigate('Register')}>
+        onPress={() => navigation.navigate('ForgotPassword')}>
         Quên mật khẩu ?
       </Text>
       <Text>
@@ -111,18 +132,24 @@ export default function LoginPage({navigation}: {navigation: any}) {
       <Text style={styles.SkipText} onPress={() => navigation.navigate('Home')}>
         Bỏ qua
       </Text>
+      <Spinner
+        visible={spining}
+        textContent={'Đang xử lí...'}
+        textStyle={styles.spinnerTextStyle}
+      />
+      <Toast />
     </View>
   );
 }
-LoginPage.propTypes = {
-  navigation: PropTypes.object.isRequired,
-};
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  spinnerTextStyle: {
+    color: '#FFF',
   },
   inputContainer: {
     flexDirection: 'row',

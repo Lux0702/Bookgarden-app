@@ -7,17 +7,71 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
+import validator from 'validator';
 import tw from 'tailwind-react-native-classnames';
-// import {useNavigation} from '@react-navigation/native';
-import PropTypes from 'prop-types';
-export default function RegisterPage({navigation}: {navigation: any}) {
+import {HelperText} from 'react-native-paper';
+import {useNavigation} from '@react-navigation/native';
+import {API_BASE} from '../utils/utils';
+import Spinner from 'react-native-loading-spinner-overlay';
+import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [isValidEmail, setIsValidEmail] = useState(false);
+  const [isValidPhone, setIsValidPhone] = useState(false);
+  const [isPassword, setIsPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  //const navigation = useNavigation();
-  const signUp = () => {
-    // sign up logic here
+  const navigation = useNavigation();
+  const [spining, setSpining] = useState(false);
+
+  const signUp = async () => {
+    setSpining(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: fullName,
+          email: email,
+          phone: phone,
+          passWord: password,
+          confirmPassWord: confirmPassword,
+        }),
+      });
+      if (response.ok) {
+        console.log('Đăng ký thành công');
+        console.log('chuyển hướng nhập mã OTP');
+        AsyncStorage.setItem('userEmail', email);
+        Toast.show({
+          type: 'success',
+          text1: 'Đăng ký thành công',
+          text2: 'Mã OTP đã gửi đến emai. vui lòng kiểm tra',
+        }); // Hiển thị thông báo thành công
+        setTimeout(() => {
+          navigation.navigate('OTP');
+        }, 2000);
+      } else {
+        const errorData = await response.json();
+        const errorMessage = errorData
+          ? errorData.message
+          : 'Đăng kí thất bại. Vui lòng thử lại';
+        console.log('Registration failed:', errorMessage);
+        Toast.show({
+          type: 'error',
+          text1: 'Đăng ký tài khoản',
+          text2: errorMessage,
+        });
+      }
+    } catch (error) {
+      console.error('Lỗi:', error);
+    } finally {
+      setSpining(false);
+    }
   };
 
   const signInWithGoogle = async () => {
@@ -35,7 +89,24 @@ export default function RegisterPage({navigation}: {navigation: any}) {
     //   // handle error
     // }
   };
-
+  const handleEmailChange = ({text}: any) => {
+    setEmail(text);
+    setIsValidEmail(
+      text.trim() !== '' && validator.isEmail(text) ? false : true,
+    );
+  };
+  const handlePhoneChange = (text: any) => {
+    setPhone(text);
+    setIsValidPhone(
+      text.length > 0 && validator.isMobilePhone(text) ? false : true,
+    );
+  };
+  const handlePassWordChange = ({text}: any) => {
+    setConfirmPassword(text);
+    setIsPassword(
+      text.trim() !== '' && text.trim() === password.trim() ? false : true,
+    );
+  };
   return (
     <View style={tw`flex-1 justify-center items-center bg-white`}>
       <Image
@@ -55,6 +126,11 @@ export default function RegisterPage({navigation}: {navigation: any}) {
           onChangeText={text => setFullName(text)}
         />
       </View>
+      <View style={[styles.helperText, !isValidEmail && {display: 'none'}]}>
+        <HelperText type="error" visible={isValidEmail}>
+          Email không hợp lệ
+        </HelperText>
+      </View>
       <View style={styles.inputContainer}>
         <Image
           source={require('../assets/icons/sms.png')}
@@ -64,7 +140,25 @@ export default function RegisterPage({navigation}: {navigation: any}) {
           style={styles.input}
           placeholder="Email"
           value={email}
-          onChangeText={text => setEmail(text)}
+          onChangeText={text => handleEmailChange({text})}
+        />
+      </View>
+      <View style={[styles.helperText, !isValidPhone && {display: 'none'}]}>
+        <HelperText type="error" visible={isValidPhone}>
+          Số điện thoại không hợp lệ
+        </HelperText>
+      </View>
+      <View style={styles.inputContainer}>
+        <Image
+          source={require('../assets/icons/call.png')}
+          style={styles.icon}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Số điện thoại"
+          value={phone}
+          keyboardType="number-pad"
+          onChangeText={text => handlePhoneChange(text)}
         />
       </View>
       <View style={styles.inputContainer}>
@@ -76,8 +170,14 @@ export default function RegisterPage({navigation}: {navigation: any}) {
           style={styles.input}
           placeholder="Mật khẩu"
           value={password}
+          secureTextEntry={true}
           onChangeText={text => setPassword(text)}
         />
+      </View>
+      <View style={[styles.helperText, !isPassword && {display: 'none'}]}>
+        <HelperText type="error" visible={isPassword}>
+          Mật khẩu không khớp
+        </HelperText>
       </View>
       <View style={styles.inputContainer}>
         <Image
@@ -88,10 +188,33 @@ export default function RegisterPage({navigation}: {navigation: any}) {
           style={styles.input}
           placeholder="Nhập lại mật khẩu"
           value={confirmPassword}
-          onChangeText={text => setConfirmPassword(text)}
+          secureTextEntry={true}
+          onChangeText={text => handlePassWordChange({text})}
         />
       </View>
-      <TouchableOpacity style={styles.buttonSignUp} onPress={signUp}>
+      <TouchableOpacity
+        disabled={
+          fullName !== '' &&
+          email !== '' &&
+          password !== '' &&
+          confirmPassword !== ''
+            ? false
+            : true
+        }
+        style={[
+          styles.buttonSignUp,
+          // eslint-disable-next-line react-native/no-inline-styles
+          {
+            backgroundColor:
+              fullName !== '' &&
+              email !== '' &&
+              password !== '' &&
+              confirmPassword !== ''
+                ? '#3697A6'
+                : 'gray',
+          },
+        ]}
+        onPress={signUp}>
         <Text style={styles.buttonText}>Đăng kí tài khoản</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogle}>
@@ -110,18 +233,32 @@ export default function RegisterPage({navigation}: {navigation: any}) {
         </Text>
       </Text>
       <Text style={styles.SkipText}>Bỏ qua</Text>
+      <Spinner
+        visible={spining}
+        textContent={'Đang xử lí...'}
+        textStyle={styles.spinnerTextStyle}
+      />
+      <Toast />
     </View>
   );
 }
-RegisterPage.propTypes = {
-  navigation: PropTypes.object.isRequired,
-};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  spinnerTextStyle: {
+    color: '#FFF',
+  },
+  helperText: {
+    width: '90%',
+    textAlign: 'left',
+    alignItems: 'flex-start',
+    marginLeft: 20,
+    marginTop: 5,
   },
   inputContainer: {
     flexDirection: 'row',

@@ -1,118 +1,93 @@
-import React from 'react';
-import {View, Text, StyleSheet, Dimensions} from 'react-native';
-// import { Text } from 'react-native-svg';
-
-const {width: screenWidth} = Dimensions.get('window');
-
-interface CarouselItem {
-  title: string;
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet, Pressable} from 'react-native';
+import {useCategoryData} from '../utils/api';
+import Spinner from 'react-native-loading-spinner-overlay';
+interface CategoryProp {
+  id: string;
+  categoryName: string;
 }
+const Categories = ({navigation}: any) => {
+  const {
+    categories,
+    fetchCategory,
+  }: {categories: any; fetchCategory: () => void} = useCategoryData();
+  const [spining, setSpining] = useState(false);
 
-const data: CarouselItem[] = [
-  {title: 'item1'},
-
-  // Add more items as needed
-];
-
-const Categories: React.FC = () => {
+  useEffect(() => {
+    const fetchData = () => {
+      try {
+        setSpining(true);
+        fetchCategory();
+      } catch {
+        console.log('fetch error');
+      } finally {
+        setSpining(false);
+      }
+    };
+    fetchData();
+  }, []);
   return (
     <View>
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Thể loại</Text>
-        <Text style={styles.title}> Xem thêm</Text>
+        <Pressable
+          onPress={() => {
+            navigation.navigate('Category');
+          }}>
+          <Text style={styles.more}> Xem thêm</Text>
+        </Pressable>
       </View>
       <View style={styles.container}>
-        <View>
-          <View style={styles.itemContainer1}>
-            <View style={styles.overlay} />
-            <Text style={styles.itemText}> Kinh dị</Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.itemContainer2}>
-            <View style={styles.overlay} />
-            <Text
-              style={styles.itemText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {' '}
-              Lãng mạn
-            </Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.itemContainer3}>
-            <View style={styles.overlay} />
-            <Text
-              style={styles.itemText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {' '}
-              Tiểu Thuyết
-            </Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.itemContainer4}>
-            <View style={styles.overlay} />
-            <Text
-              style={styles.itemText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {' '}
-              Tiểu Thuyết
-            </Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.itemContainer5}>
-            <View style={styles.overlay} />
-            <Text
-              style={styles.itemText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {' '}
-              Tiểu Thuyết
-            </Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.itemContainer6}>
-            <View style={styles.overlay} />
-            <Text
-              style={styles.itemText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {' '}
-              Tiểu Thuyết
-            </Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.itemContainer7}>
-            <View style={styles.overlay} />
-            <Text
-              style={styles.itemText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {' '}
-              Tiểu Thuyết
-            </Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.itemContainer8}>
-            <View style={styles.overlay} />
-            <Text
-              style={styles.itemText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {' '}
-              Tiểu Thuyết
-            </Text>
-          </View>
-        </View>
+        {categories.slice(1, 9).map((item: CategoryProp, index: number) => (
+          <Pressable
+            onPress={() => {
+              navigation.navigate('ListBook', {
+                filters: {
+                  categories: [item.categoryName],
+                  authors: [],
+                  minPrice: 0,
+                  maxPrice: 2000000,
+                  sortBy: null,
+                },
+              });
+            }}>
+            <View key={item.id}>
+              <View
+                style={
+                  index === 0
+                    ? styles.itemContainer1
+                    : index === 1
+                    ? styles.itemContainer2
+                    : index === 2
+                    ? styles.itemContainer3
+                    : index === 3
+                    ? styles.itemContainer4
+                    : index === 4
+                    ? styles.itemContainer5
+                    : index === 5
+                    ? styles.itemContainer6
+                    : index === 6
+                    ? styles.itemContainer7
+                    : styles.itemContainer8
+                }>
+                <View style={styles.overlay} />
+                <Text
+                  style={styles.itemText}
+                  numberOfLines={2}
+                  ellipsizeMode="tail">
+                  {item.categoryName}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        ))}
       </View>
+      <Spinner
+        visible={spining}
+        textContent={'Đang xử lí...'}
+        textStyle={styles.spinnerTextStyle}
+        overlayColor="rgba(255, 255, 255, 0.5)"
+      />
     </View>
   );
 };
@@ -126,6 +101,14 @@ const styles = StyleSheet.create({
     width: '100%',
     flexWrap: 'wrap',
     position: 'relative',
+  },
+  spinnerTextStyle: {
+    color: 'black',
+  },
+  more: {
+    color: '#1C2A3A',
+    fontSize: 16,
+    fontWeight: 'normal',
   },
   titleContainer: {
     alignSelf: 'center',
@@ -272,6 +255,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 3,
     fontWeight: 'bold',
+    padding: 5,
   },
 });
 

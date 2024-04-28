@@ -1,8 +1,7 @@
 import React, {useEffect} from 'react';
 import {View, StyleSheet, ImageBackground, Dimensions} from 'react-native';
-import PropTypes from 'prop-types';
 import {isLoggedIn} from '../service/AuthService';
-const OnboardingSlide = ({navigation}: {navigation: any}) => {
+const OnboardingSlide = ({navigation}: any) => {
   useEffect(() => {
     const checkLoginStatus = async () => {
       const loggedIn = await isLoggedIn(); // Kiểm tra trạng thái đăng nhập
@@ -32,10 +31,6 @@ const OnboardingSlide = ({navigation}: {navigation: any}) => {
       </ImageBackground>
     </View>
   );
-};
-
-OnboardingSlide.propTypes = {
-  navigation: PropTypes.object.isRequired,
 };
 
 const styles = StyleSheet.create({
