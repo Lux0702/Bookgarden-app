@@ -18,7 +18,7 @@ const addUser = (name: string, email: string, password: string) => {
 
 // Lấy người dùng từ Realm dựa trên tên người dùng
 const getUser = (username: string) => {
-  return realm.objects('User').filtered(`username = "${username}"`);
+  return realm.objects('User').filtered(`email = "${username}"`);
 };
 
 // Đăng xuất người dùng (xóa tất cả các người dùng từ Realm)

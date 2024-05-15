@@ -12,11 +12,47 @@ import {API_BASE} from '../utils/utils';
 import {addUser} from '../service/AuthService';
 import {useNavigation} from '@react-navigation/native';
 import { index } from 'realm';
-export default function ForgotPassword() {
+import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+export default function ForgotPassword({navigation}: any) {
   const [email, setEmail] = useState('');
-  const navigation = useNavigation();
   const handleForgotPassword = async () => {
     console.log('email: ', email);
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/v1/auth/send-forgot-password-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+          }),
+        },
+      );
+      if (response.ok) {
+        Toast.show({
+          type: 'info',
+          text1: 'Mã OTP',
+          text2: 'Gửi  OTP thành công! Kiểm tra email',
+        });
+        setTimeout(() => {
+          AsyncStorage.setItem('userEmail', email);
+          navigation.navigate('OTP');
+        }, 2000);
+      } else {
+        // Xử lý khi gửi lại mã OTP thất bại
+        const errorData = await response.json();
+        Toast.show({
+          type: 'error',
+          text1: 'Mã OTP',
+          text2: errorData.message || 'Gửi OTP lỗi',
+        });
+      }
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   return (

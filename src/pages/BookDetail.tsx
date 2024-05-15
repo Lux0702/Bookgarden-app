@@ -12,33 +12,93 @@ import {
   Alert,
 } from 'react-native';
 import tw from 'tailwind-react-native-classnames';
-import {API_BASE} from '../utils/utils';
-import {Dialog, Avatar, Divider} from 'react-native-paper';
-import {ActivityIndicator, MD2Colors, HelperText} from 'react-native-paper';
-import Toast from 'react-native-toast-message';
-import RNPickerSelect from 'react-native-picker-select';
-import validator from 'validator';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import {
-  ImagePickerResponse,
-  launchCamera,
-  launchImageLibrary,
-} from 'react-native-image-picker';
+import {Avatar, Divider, TextInput} from 'react-native-paper';
+import Modal from 'react-native-modal';
+
+// import {
+//   ImagePickerResponse,
+//   launchCamera,
+//   launchImageLibrary,
+// } from 'react-native-image-picker';
 import {Rating} from 'react-native-ratings';
 import BookCard from '../components/bookComponnent';
-import {useBookDetail, useBookRelate} from '../utils/api';
+import {
+  useBookDetail,
+  useBookRelate,
+  useAddWish,
+  useAddToCart,
+  useCartData,
+} from '../utils/api';
 import Spinner from 'react-native-loading-spinner-overlay';
-import Categories from '../components/CategoryComponent';
-import {useIsFocused} from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
+import {useTokenExpirationCheck} from '../service/useTokenExpirationCheck';
+import {isLoggedIn} from '../service/AuthService';
+
+interface tokenProp {
+  accessToken: string;
+  refreshToken: string;
+}
+
 const BookDetail = ({navigation, route}: any) => {
-  const isFocused = useIsFocused();
   const {bookId} = route.params || '';
   const [spining, setSpining] = useState(false);
-  const [visible, setVisible] = React.useState(false);
-  const {detailBook, fetchDetail} = useBookDetail({bookId});
+  const [quantity, setQuantity] = useState<number>(1);
+  const [visibleModal, setVisibleModal] = useState(false);
+  const [token, setToken] = useState<tokenProp | null>(null);
+  const login = isLoggedIn();
+  const [buyNow, setBuyNow] = useState(false);
+  const {cart, fetchCart}: {cart: any; fetchCart: () => void} = useCartData({
+    token,
+  });
+  let {IsChange, checkTokenExpiration} = useTokenExpirationCheck();
+  // const [visible, setVisible] = React.useState(false);
+  let {detailBook, fetchDetail} = useBookDetail({bookId});
   const {relateBook, fetchRelate}: {relateBook: any; fetchRelate: () => void} =
     useBookRelate({bookId});
+  const {fetchAddWish}: {fetchAddWish: () => void} = useAddWish({
+    token,
+    bookId,
+  });
+  const {fetchAddToCart}: {fetchAddToCart: () => void} = useAddToCart({
+    token,
+    bookId,
+    quantity,
+  });
   const scrollViewRef = useRef(null);
+  useEffect(() => {
+    const refresh = async () => {
+      try {
+        setSpining(true);
+        if (login) {
+          await checkTokenExpiration();
+        }
+      } catch {
+        console.log('error');
+      } finally {
+        setSpining(false);
+      }
+    };
+    refresh();
+  }, []);
+  useEffect(() => {
+    const getTokenAndFetchData = async () => {
+      try {
+        setSpining(true);
+        const tokenFromStorage = await AsyncStorage.getItem('token');
+        if (tokenFromStorage) {
+          const parsedToken = JSON.parse(tokenFromStorage);
+          setToken(parsedToken); // Cập nhật state token với giá trị từ AsyncStorage
+          console.log('Token', parsedToken);
+        }
+      } catch (error) {
+        console.log('Error fetching token or data:', error);
+      } finally {
+        setSpining(false);
+      }
+    };
+    getTokenAndFetchData();
+  }, [IsChange]);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -56,9 +116,9 @@ const BookDetail = ({navigation, route}: any) => {
     };
     fetchData();
   }, [bookId]);
-  const hideDialog = () => setVisible(false);
-  console.log('Rating:', detailBook && detailBook.reviews);
-  console.log('Rating:', detailBook && typeof detailBook.reviews);
+  // const hideDialog = () => setVisible(false);
+  // console.log('Rating:', detailBook && detailBook.reviews);
+  // console.log('Rating:', detailBook && typeof detailBook.reviews);
   const handleBookPress = useCallback(
     (_id: string) => {
       try {
@@ -72,14 +132,94 @@ const BookDetail = ({navigation, route}: any) => {
     },
     [navigation],
   );
+  const handleAddWish = async () => {
+    console.log('Toke & id book: ', token?.accessToken, bookId);
+    if (login) {
+      try {
+        setSpining(true);
+        await fetchAddWish();
+      } catch (error) {
+        console.log('lỗi kết nối', error);
+      } finally {
+        setSpining(false);
+      }
+    } else {
+      Toast.show({
+        type: 'info',
+        text1: 'thêm yêu thích ',
+        text2: 'Vui lòng đăng nhập để thêm',
+      });
+    }
+  };
+  const handleAddtoCart = async () => {
+    if (buyNow) {
+      console.log('ton kho', detailBook?.stock);
+      if (quantity < 0 || quantity > (detailBook?.stock ?? 0)) {
+        Toast.show({
+          type: 'error',
+          text1: 'Thêm vào giỏ hàng ',
+          text2: 'Số lượng lớn hơn hàng tồn',
+        });
+        return;
+      } else {
+        try {
+          setSpining(true);
+          await fetchCart();
+          await fetchAddToCart();
+        } catch (error) {
+          console.log('lỗi ', error);
+        } finally {
+          setSpining(false);
+          setVisibleModal(false);
+          setBuyNow(false);
+        }
+        if (cart.length > 0) {
+          navigation.navigate('OrderPage', {
+            buyNow: detailBook,
+            buyQuantity: quantity,
+            cartItem: cart.length > 0 ? [cart[cart.length - 1]._id] : [],
+          });
+        }
+      }
+    } else {
+      try {
+        setSpining(true);
+        await fetchAddToCart();
+        setVisibleModal(false);
+        await fetchDetail();
+      } catch (error) {
+        console.log('lỗi ', error);
+      } finally {
+        setSpining(false);
+      }
+    }
+  };
+  const handleQuantityChange = (amount: any) => {
+    const newQuantity = quantity + amount;
+    if (newQuantity > 0 && newQuantity <= (detailBook?.stock ?? 0)) {
+      setQuantity(newQuantity);
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Thêm vào giỏ hàng ',
+        text2: 'Số lượng lớn hơn 0 và nhỏ hơn hàng tồn',
+      });
+    }
+  };
+
   return (
     <View style={tw`flex-1  items-center bg-white`}>
-      <TouchableOpacity
-        style={styles.titlecontainer}
-        onPress={() => navigation.goBack()}>
-        <Image source={require('../assets/icons/back-icon.png')} />
+      <TouchableOpacity style={styles.titlecontainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Image source={require('../assets/icons/back-icon.png')} />
+        </TouchableOpacity>
         <Text style={styles.titleProfile}> Chi tiết sách</Text>
-        <Image source={require('../assets/icons/heart.png')} />
+        <TouchableOpacity
+          onPress={() => {
+            handleAddWish();
+          }}>
+          <Image key={bookId} source={require('../assets/icons/heart.png')} />
+        </TouchableOpacity>
       </TouchableOpacity>
       <ScrollView
         ref={scrollViewRef}
@@ -151,14 +291,15 @@ const BookDetail = ({navigation, route}: any) => {
           <TouchableOpacity
             style={[styles.buttonPurchase, {backgroundColor: '#ccc'}]}
             onPress={() => {
-              setVisible(false);
+              setVisibleModal(true);
             }}>
             <Text style={styles.title}>Thêm vào giỏ</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonPurchase}
             onPress={() => {
-              //   navigation.navigate('Home');
+              setBuyNow(true);
+              setVisibleModal(true);
             }}>
             <Text style={[styles.title, {color: '#fff'}]}>Mua ngay</Text>
           </TouchableOpacity>
@@ -207,13 +348,18 @@ const BookDetail = ({navigation, route}: any) => {
         </Text>
         <View style={[styles.titlecontainer, {marginTop: 0}]}>
           <Text style={styles.titleProfile}>Đánh giá</Text>
-          <Pressable>
+          <Pressable
+            onPress={() => {
+              navigation.navigate('ReviewMore', {
+                book: detailBook,
+              });
+            }}>
             <Text style={styles.more}>Xem thêm</Text>
           </Pressable>
         </View>
         {detailBook && detailBook.reviews && detailBook.reviews.length > 0 ? (
           <View style={styles.reivewContainer}>
-            {detailBook.reviews.map(review => (
+            {detailBook.reviews.slice(0, 2).map(review => (
               <View
                 key={review.id}
                 style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -282,8 +428,71 @@ const BookDetail = ({navigation, route}: any) => {
         visible={spining}
         textContent={'Đang tải...'}
         textStyle={styles.spinnerTextStyle}
-        overlayColor="rgba(255, 255, 255, 0.9)"
+        overlayColor="rgba(255, 255, 255, 0.5)"
       />
+      <Modal
+        style={styles.modal}
+        isVisible={visibleModal}
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropOpacity={0.2}
+        backdropColor="black"
+        animationInTiming={700}
+        animationOutTiming={700}
+        onBackdropPress={() => {
+          setVisibleModal(false);
+          setBuyNow(false);
+        }}>
+        <View style={styles.modalView}>
+          <View style={styles.contentModal}>
+            <Text style={styles.titleModal}>Thêm vào giỏ hàng</Text>
+            <Divider />
+            <View style={{display: 'flex', flexDirection: 'row'}}>
+              <Text style={styles.price}>Hàng còn :</Text>
+              <Text style={styles.price}>{detailBook?.stock}</Text>
+            </View>
+            <View style={styles.quantityControl}>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => handleQuantityChange(-1)}>
+                <Text style={{fontSize: 20}}>--</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={styles.quantity}
+                value={quantity.toString()}
+                onChangeText={text => {
+                  // Allow only numbers
+                  const numberValue = parseFloat(text);
+                  setQuantity(numberValue);
+                }}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => handleQuantityChange(1)}>
+                <Text style={{fontSize: 20}}>+</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.button}>
+              <TouchableOpacity
+                style={[styles.buttonLogout, {backgroundColor: '#ccc'}]}
+                onPress={() => {
+                  setVisibleModal(false);
+                  setBuyNow(false);
+                }}>
+                <Text style={styles.title}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.buttonLogout}
+                onPress={() => {
+                  handleAddtoCart();
+                }}>
+                <Text style={styles.title}>Thêm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -296,6 +505,69 @@ const styles = StyleSheet.create({
   },
   spinnerTextStyle: {
     color: 'black',
+  },
+  quantityControl: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: 40,
+  },
+  quantityButton: {
+    height: 40,
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderColor: '#ccc',
+    borderWidth: 1,
+  },
+  quantity: {
+    width: 70,
+    height: 40,
+    textAlign: 'center',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    justifyContent: 'center',
+    fontSize: 20,
+    alignSelf: 'center',
+  },
+  titleModal: {
+    fontSize: 25,
+    width: '100%',
+    color: '#262626',
+    textAlign: 'center',
+    fontWeight: '700',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  modalView: {
+    backgroundColor: 'white',
+    height: '30%',
+    width: '100%',
+    borderRadius: 20,
+    borderBottomEndRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  modal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  contentModal: {
+    padding: 5,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    textAlignVertical: 'center',
+  },
+  buttonLogout: {
+    width: '45%',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: '#3697A6',
+    padding: 12,
+    borderRadius: 25,
   },
   categoryContainer: {
     flexDirection: 'row',

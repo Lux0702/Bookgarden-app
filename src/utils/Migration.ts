@@ -1,18 +1,26 @@
 // import Realm from 'realm';
-// import User from '../utils/User';
 
-// export default function migrateUser(realm: Realm) {
-//   if (realm.schemaVersion < 1) {
-//     const oldUsers = realm.objects('User') as Realm.Results<User>;
-//     const newUsers = realm.create('User', {
-//       password: '',
-//       email: '',
-//     }) as Realm.Results<User>;
-//     for (let i = 0; i < oldUsers.length; i++) {
-//       const oldUser = oldUsers[i];
-//       const newUser = newUsers[i];
-//       newUser.username = oldUser.name;
-//       // Cập nhật các thuộc tính khác nếu cần
-//     }
-//   }
+// export default function migrateUser(realm: Realm): void {
+//   Realm.open({
+//     schema: [User.schema],
+//     schemaVersion: 1,
+//     migration: (
+//       oldRealm: {objects: (arg0: string) => any},
+//       newRealm: {objects: (arg0: string) => any},
+//     ) => {
+//       // Logic migration ở đây
+//       const oldUsers = oldRealm.objects('User');
+//       const newUsers = newRealm.objects('User');
+
+//       for (let i = 0; i < oldUsers.length; i++) {
+//         const oldUser = oldUsers[i];
+//         const newUser = newUsers[i];
+//         // Thêm các thuộc tính accessToken và refreshToken vào newUser
+//         newUser.accessToken = oldUser.accessToken;
+//         newUser.refreshToken = oldUser.refreshToken;
+//       }
+//     },
+//   }).then(newRealm => {
+//     // Quá trình migration đã hoàn tất
+//   });
 // }

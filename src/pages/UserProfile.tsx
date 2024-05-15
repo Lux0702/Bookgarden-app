@@ -25,20 +25,60 @@ import {
   launchCamera,
   launchImageLibrary,
 } from 'react-native-image-picker';
-
-const ProfileUser = ({navigation}: any) => {
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+import {useUpdateProfile} from '../utils/api';
+import {useTokenExpirationCheck} from '../service/useTokenExpirationCheck';
+import {useFocusEffect} from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const ProfileUser = ({navigation, route}: any) => {
+  let {checkTokenExpiration}: {checkTokenExpiration: () => void} =
+    useTokenExpirationCheck();
+  const {userData} = route.params || null;
+  const [token, setToken] = useState<tokenProp | null>(null);
+  let {fetchUpdateProfile} = useUpdateProfile({token});
+  const [fullName, setFullName] = useState(userData?.fullName);
+  const [phone, setPhone] = useState(userData?.phone);
+  const [email, setEmail] = useState(userData?.email);
   const [isValidEmail, setIsValidEmail] = useState(false);
   const [isValidPhone, setIsValiPhone] = useState(false);
   const [birthday, setBirthday] = useState('');
-  const [date, setDate] = useState(new Date());
-  const [avatar, setAvatar] = useState('');
-  const [gender, setGender] = useState('');
+  const [date, setDate] = useState(userData?.birthday);
+  const [avatar, setAvatar] = useState(userData?.avatar);
+  const [Isavatar, setIsAvatar] = useState(false);
+
+  const [gender, setGender] = useState(userData?.gender);
   // const [count, setCount] = useState(60);
   const [visible, setVisible] = React.useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        try {
+          await checkTokenExpiration();
+        } catch (error) {
+          console.log('Lỗi kiểm tra token:', error);
+        }
+      };
+      fetchData();
+      // Không có return hoặc trả về undefined ở đây
+    }, []),
+  );
+  useFocusEffect(
+    React.useCallback(() => {
+      const getTokenAndFetchData = async () => {
+        try {
+          const tokenFromStorage = await AsyncStorage.getItem('token');
+          if (tokenFromStorage) {
+            const parsedToken = JSON.parse(tokenFromStorage);
+            setToken(parsedToken); // Cập nhật state token với giá trị từ AsyncStorage
+            console.log('Token', parsedToken);
+          }
+        } catch (error) {
+          console.log('Error fetching token or data:', error);
+        }
+      };
+      getTokenAndFetchData();
+    }, []),
+  );
   const handleDateChange = (event: any, selectedDate: Date | undefined) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
@@ -58,57 +98,17 @@ const ProfileUser = ({navigation}: any) => {
     );
   };
   const handleSubmit = async () => {
-    // try {
-    //   const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
-    //     method: 'POST',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //   });
-    //   if (response.ok) {
-    //     console.log('Đăng nhập thành công');
-    //   } else {
-    //     console.error('Đăng nhập không thành công');
-    //   }
-    // } catch (error) {
-    //   console.error('Lỗi:', error);
-    // }
     setVisible(true);
+    handleUpdate();
   };
   const formatDate = (rawDate: Date) => {
-    const date = new Date(rawDate);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+    const dateTime = new Date(rawDate);
+    const day = dateTime.getDate().toString().padStart(2, '0');
+    const month = (dateTime.getMonth() + 1).toString().padStart(2, '0');
+    const year = dateTime.getFullYear();
+    return `${year}-${month}-${day}`;
   };
   const handleImagePress = async () => {
-    // try {
-    //   const granted = await PermissionsAndroid.request(
-    //     PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-    //     {
-    //       title: 'Quyền truy cập thư viện ảnh',
-    //       message: 'Ứng dụng cần quyền truy cập thư viện ảnh để chọn hình ảnh.',
-    //       buttonNeutral: 'Hỏi sau',
-    //       buttonNegative: 'Hủy',
-    //       buttonPositive: 'OK',
-    //     },
-    //   );
-    //   if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-    //     launchImageLibrary({mediaType: 'photo'}, response => {
-    //       if (response.assets && response.assets.length > 0) {
-    //         const selectedImage = response.assets[0];
-    //         setAvatar(selectedImage.uri ?? null);
-    //       } else {
-    //         console.log('Người dùng đã hủy bỏ chọn ảnh.');
-    //       }
-    //     });
-    //   } else {
-    //     console.log('Quyền truy cập thư viện ảnh không được cấp.');
-    //   }
-    // } catch (error) {
-    //   console.error('Lỗi khi yêu cầu quyền truy cập thư viện ảnh:', error);
-    // }
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.CAMERA,
@@ -122,6 +122,7 @@ const ProfileUser = ({navigation}: any) => {
         const result: any = await launchImageLibrary({mediaType: 'photo'});
         console.log(result.assets[0].uri);
         setAvatar(result.assets[0].uri);
+        setIsAvatar(true);
       } else {
         console.log('Camera permission denied');
       }
@@ -135,14 +136,48 @@ const ProfileUser = ({navigation}: any) => {
       text.length > 0 && validator.isMobilePhone(text) ? false : true,
     );
   };
+  const handleUpdate = async () => {
+    const user = {
+      userId: userData?.userId,
+      email: userData?.email,
+      role: userData?.role,
+      points: userData?.points,
+      addresses: userData?.addresses,
+      fullName: fullName,
+      phone: phone,
+      gender: gender,
+      avatar: Isavatar ? avatar : '',
+      birthday: birthday,
+    };
+    console.log('thông tin cap nhat', user);
+    if (fullName && phone && gender && avatar && birthday) {
+      try {
+        await fetchUpdateProfile(user);
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Thông tin cá nhân ',
+          text2: 'Cập nhật lỗi',
+        });
+      } finally {
+        setVisible(false);
+      }
+    } else {
+      Toast.show({
+        type: 'info',
+        text1: 'Thông tin cá nhân ',
+        text2: 'Vui lòng nhập đủ thông tin',
+      });
+    }
+  };
   return (
     <View style={tw`flex-1  items-center bg-white`}>
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.titlecontainer}
         onPress={() => navigation.goBack()}>
         <Image source={require('../assets/icons/back-icon.png')} />
         <Text style={styles.titleProfile}> Thông tin cá nhân</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={styles.scrollview}
@@ -197,6 +232,7 @@ const ProfileUser = ({navigation}: any) => {
           <TextInput
             style={[styles.input, isValidEmail && styles.errorInput]}
             placeholder="Email"
+            editable={false}
             value={email}
             onChangeText={text => handleEmailChange({text})}
           />
@@ -208,6 +244,7 @@ const ProfileUser = ({navigation}: any) => {
                 {label: 'Nữ', value: 'Female'},
               ]}
               placeholder={{label: 'Giới tính', value: null}}
+              value={gender}
             />
           </View>
           <View style={styles.DatePicker}>

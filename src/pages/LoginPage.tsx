@@ -10,16 +10,21 @@ import {
 import tw from 'tailwind-react-native-classnames';
 import {API_BASE} from '../utils/utils';
 import {addUser} from '../service/AuthService';
-import {useNavigation} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import Spinner from 'react-native-loading-spinner-overlay';
-
-export default function LoginPage() {
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useNotification} from '../service/useNotification';
+import notifee from '@notifee/react-native';
+export default function LoginPage({navigation}: any) {
   const [passWord, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const navigation = useNavigation();
   const [spining, setSpining] = useState(false);
-
+  // notify
+  const {displayNotification, displayTriggerNotification} = useNotification();
+  notifee.onBackgroundEvent(async ({type, detail}) => {
+    console.log('Background event:', type, detail);
+    // Xử lý sự kiện ở đây
+  });
   const Login = async () => {
     console.log('email: ', email);
     console.log('password : ', passWord);
@@ -34,6 +39,8 @@ export default function LoginPage() {
       });
       if (response.ok) {
         console.log('Đăng nhập thành công');
+        const account = await response.json();
+        await AsyncStorage.setItem('token', JSON.stringify(account.data));
         addUser(email, email, passWord);
         Toast.show({
           type: 'success',
@@ -41,8 +48,8 @@ export default function LoginPage() {
           text2: 'Đăng nhập thành công',
         }); // Hiển thị thông báo thành công
         setTimeout(() => {
-          navigation.navigate('Home');
-        }, 1000);
+          navigation.replace('Home');
+        }, 500);
       } else {
         console.log('Đăng nhập không thành công');
         Toast.show({
@@ -55,9 +62,18 @@ export default function LoginPage() {
       console.log('Lỗi:', error);
     } finally {
       setSpining(false);
+      handleDisplayNotification();
     }
   };
-
+  const handleDisplayNotification = async () => {
+    // Display notification
+    // displayNotification('NotificationTitle', 'the helo');
+    displayTriggerNotification(
+      'Đăng nhập',
+      'Bạn vừa đăng nhập',
+      Date.now() + 3000,
+    );
+  };
   const signInWithGoogle = async () => {
     // try {
     //   const result = await Google.logInAsync({
@@ -73,7 +89,6 @@ export default function LoginPage() {
     //   // handle error
     // }
   };
-
   return (
     <View style={tw`flex-1 justify-center items-center bg-white`}>
       <Image
@@ -201,6 +216,7 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     color: '#9CA3AF',
+    width: '100%',
   },
   buttonSignUp: {
     width: '90%',

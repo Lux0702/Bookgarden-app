@@ -141,7 +141,7 @@ const HomePage = ({navigation}: any) => {
               keyExtractor={item => item._id.toString()}
               renderItem={({item}) => {
                 return (
-                  <View style={styles.carousell}>
+                  <View style={styles.carousell} key={item._id}>
                     <TouchableOpacity
                       onPress={() => {
                         handleBookPress(item._id);
@@ -184,10 +184,10 @@ const HomePage = ({navigation}: any) => {
               keyExtractor={item => item._id.toString()}
               renderItem={({item}) => {
                 return (
-                  <View style={styles.carousell}>
+                  <View style={styles.carousell} key={item._id}>
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert('pressed');
+                        handleBookPress(item._id);
                       }}>
                       <BookCard
                         _id={item._id}
@@ -252,7 +252,6 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     marginTop: 5,
-    // ...tw`flex items-center justify-start `,
     alignSelf: 'center',
     width: '100%',
     flexDirection: 'row',

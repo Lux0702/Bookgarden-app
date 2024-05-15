@@ -28,7 +28,7 @@ interface AuthorsProp {
 }
 const FilterPage = ({navigation}: any) => {
   // const [animation] = useState(new Animated.Value(0));
-  const [selectedIndex, setIndex] = React.useState();
+  const [selectedIndex, setIndex] = React.useState<number>();
   const {
     categories,
     fetchCategory,

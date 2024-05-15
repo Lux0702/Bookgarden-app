@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useEffect, useRef, useState, useCallback} from 'react';
+import React from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,14 +7,9 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Pressable,
-  FlatList,
-  Alert,
 } from 'react-native';
 import tw from 'tailwind-react-native-classnames';
-import {useNavigation} from '@react-navigation/native';
-import {API_BASE} from '../utils/utils';
-import {Dialog, Avatar, Divider} from 'react-native-paper';
+import {Divider} from 'react-native-paper';
 // import {ActivityIndicator, MD2Colors, HelperText} from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 // import RNPickerSelect from 'react-native-picker-select';
@@ -25,58 +20,8 @@ import Toast from 'react-native-toast-message';
 //   launchCamera,
 //   launchImageLibrary,
 // } from 'react-native-image-picker';
-import {Rating} from 'react-native-ratings';
-import BookCard from '../components/bookComponnent';
 const DetailMore = ({navigation, route}: any) => {
   const {book} = route.params || null;
-  const [visible, setVisible] = React.useState(false);
-  const hideDialog = () => setVisible(false);
-  const bookData: {
-    rating: number;
-    title: string;
-    imageUrl: string;
-    price: string;
-  }[] = [
-    {
-      rating: 1,
-      title: 'Book 1',
-      imageUrl:
-        'https://didongviet.vn/dchannel/wp-content/uploads/2023/08/hinh-nen-3d-hinh-nen-iphone-dep-3d-didongviet@2x-576x1024.jpg',
-      price: '80.000',
-    },
-    {
-      rating: 2,
-      title: 'Book 2',
-      imageUrl:
-        'https://didongviet.vn/dchannel/wp-content/uploads/2023/08/hinh-nen-3d-hinh-nen-iphone-dep-3d-didongviet@2x-576x1024.jpg',
-      price: '80.000',
-    },
-    {
-      rating: 3,
-      title: 'Book 3',
-      imageUrl:
-        'https://didongviet.vn/dchannel/wp-content/uploads/2023/08/hinh-nen-3d-hinh-nen-iphone-dep-3d-didongviet@2x-576x1024.jpg',
-
-      price: '80.000',
-    },
-    {
-      rating: 2,
-      title: 'Book 2',
-      imageUrl:
-        'https://didongviet.vn/dchannel/wp-content/uploads/2023/08/hinh-nen-3d-hinh-nen-iphone-dep-3d-didongviet@2x-576x1024.jpg',
-
-      price: '80.000',
-    },
-    {
-      rating: 3,
-      title: 'Book 3',
-      imageUrl:
-        'https://didongviet.vn/dchannel/wp-content/uploads/2023/08/hinh-nen-3d-hinh-nen-iphone-dep-3d-didongviet@2x-576x1024.jpg',
-
-      price: '80.000',
-    },
-    // Add more books as needed
-  ];
   function convertDateFormat(dateString: string) {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -92,7 +37,10 @@ const DetailMore = ({navigation, route}: any) => {
         onPress={() => navigation.navigate('BookDetail')}>
         <Image source={require('../assets/icons/back-icon.png')} />
         <Text style={styles.titleProfile}> Chi tiết sách</Text>
-        <Image source={require('../assets/icons/heart.png')} />
+        <Image
+          source={require('../assets/icons/heart.png')}
+          style={{opacity: 0}}
+        />
       </TouchableOpacity>
       <ScrollView
         showsVerticalScrollIndicator={false}

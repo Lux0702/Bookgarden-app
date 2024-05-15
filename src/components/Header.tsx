@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   Pressable,
 } from 'react-native';
+import {logout} from '../service/AuthService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Header = ({navigation, searchKey}: any) => {
   const [search, setSearch] = useState('');
@@ -30,7 +32,9 @@ const Header = ({navigation, searchKey}: any) => {
       console.log('Error:', error);
     }
   }, [navigation]);
-
+  const handleTest = () => {
+    navigation.navigate('Notification');
+  };
   return (
     <SafeAreaView>
       <View style={styles.container}>
@@ -47,11 +51,15 @@ const Header = ({navigation, searchKey}: any) => {
               <Text style={styles.title}>Book Garden</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              handleTest();
+            }}>
             <Image
               source={require('../assets/icons/notification-bing.png')}
               style={styles.notificationIcon}
             />
+            <Text style={styles.bagde} />
           </TouchableOpacity>
         </View>
         <View style={styles.textInputStyle}>
@@ -110,6 +118,16 @@ const styles = StyleSheet.create({
     borderColor: '#F3F4F6',
     color: '#9CA3AF',
     justifyContent: 'space-between',
+  },
+  bagde: {
+    position: 'absolute',
+    right: 26,
+    top: 0,
+    zIndex: 1,
+    width: 10,
+    height: 10,
+    backgroundColor: '#FF3333',
+    borderRadius: 20,
   },
   inputSearch: {
     color: '#9CA3AF',

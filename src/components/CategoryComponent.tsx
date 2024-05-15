@@ -40,6 +40,7 @@ const Categories = ({navigation}: any) => {
       <View style={styles.container}>
         {categories.slice(1, 9).map((item: CategoryProp, index: number) => (
           <Pressable
+            key={index}
             onPress={() => {
               navigation.navigate('ListBook', {
                 filters: {

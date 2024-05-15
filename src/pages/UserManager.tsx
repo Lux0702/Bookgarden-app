@@ -18,14 +18,33 @@ import Toast from 'react-native-toast-message';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {Divider} from 'react-native-paper';
 import Modal from 'react-native-modal';
-
+import Spinner from 'react-native-loading-spinner-overlay';
+import {isLoggedIn, logout} from '../service/AuthService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useProfileData} from '../utils/api';
+import {useTokenExpirationCheck} from '../service/useTokenExpirationCheck';
+import {useNavigationState} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
+interface tokenProp {
+  accessToken: string;
+  refreshToken: string;
+}
 const UserManager = ({navigation}: any) => {
+  let {IsChange, checkTokenExpiration} = useTokenExpirationCheck();
+  const navigationState = useNavigationState(state => state);
   const [fullName, setFullName] = useState('');
   const [avatar, setAvatar] = useState('');
+  const login = isLoggedIn();
+  const [token, setToken] = useState<tokenProp | null>(null);
+  const isUserTabFocused =
+    navigationState.index === 3 &&
+    navigationState.routes[navigationState.index].name === 'Cá nhân';
+  let {userData, fetchProfileData} = useProfileData({token});
   // const [count, setCount] = useState(60);
   const [visible, setVisible] = React.useState(false);
   const hideDialog = () => setVisible(false);
   const showDialog = () => setVisible(true);
+  const [spining, setSpining] = useState(false);
   const handleImagePress = async () => {
     try {
       const granted = await PermissionsAndroid.request(
@@ -47,6 +66,59 @@ const UserManager = ({navigation}: any) => {
       console.warn(err);
     }
   };
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        try {
+          await checkTokenExpiration();
+        } catch (error) {
+          console.log('Lỗi kiểm tra token:', error);
+        }
+      };
+      fetchData();
+      // Không có return hoặc trả về undefined ở đây
+    }, [isUserTabFocused, login, token]),
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const getTokenAndFetchData = async () => {
+        try {
+          const tokenFromStorage = await AsyncStorage.getItem('token');
+          if (tokenFromStorage) {
+            const parsedToken = JSON.parse(tokenFromStorage);
+            setToken(parsedToken); // Cập nhật state token với giá trị từ AsyncStorage
+            console.log('Token', parsedToken);
+          }
+        } catch (error) {
+          console.log('Error fetching token or data:', error);
+        }
+      };
+      getTokenAndFetchData();
+    }, [isUserTabFocused, IsChange]),
+  );
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchDataIfNeeded = async () => {
+        if (login) {
+          try {
+            setSpining(true);
+            await fetchProfileData().then(() => {
+              setFullName(userData?.fullName || '');
+              setAvatar(userData?.avatar || '');
+            });
+          } catch (error) {
+            console.log('Error fetch:', error);
+          } finally {
+            setSpining(false);
+          }
+        } else if (!login) {
+          setVisible(true);
+        }
+      };
+      fetchDataIfNeeded();
+    }, [isUserTabFocused, token]),
+  );
   return (
     <View style={tw`flex-1  items-center bg-white`}>
       <TouchableOpacity
@@ -54,145 +126,159 @@ const UserManager = ({navigation}: any) => {
         onPress={() => navigation.navigate('OTP')}>
         <Text style={styles.titleProfile}> Quản lí tài khoản</Text>
       </TouchableOpacity>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={styles.scrollview}
-        // eslint-disable-next-line react-native/no-inline-styles
-        contentContainerStyle={{
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-        <View style={[styles.imageProfile]}>
-          <Pressable onPress={handleImagePress}>
-            <Image
-              source={
-                avatar !== ''
-                  ? {uri: avatar}
-                  : require('../assets/images/profile.png')
-              }
-              style={styles.image}
-              resizeMode="cover"
-            />
-          </Pressable>
-
-          <Image
-            source={require('../assets/icons/editIcon.png')}
-            style={styles.icon}
-          />
-        </View>
-        <Text style={styles.title}>Nguyễn Thanh Sang</Text>
-        <View style={styles.contentContaier}>
-          <View style={styles.contentRow}>
-            <Image
-              source={require('../assets/icons/user-edit.png')}
-              style={styles.contentIcon}
-            />
-            <Text style={styles.contentTilte}>Thông tin cá nhân</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('ProfileUser');
-            }}
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 5,
-            }}>
-            <Image
-              source={require('../assets/icons/arrow-right.png')}
-              style={styles.contentArrow}
-            />
-          </TouchableOpacity>
-        </View>
-        <Divider style={styles.divider} />
-        <View style={styles.contentContaier}>
-          <View style={styles.contentRow}>
-            <Image
-              source={require('../assets/icons/setting.png')}
-              style={styles.contentIcon}
-            />
-            <Text style={styles.contentTilte}>Lịch sử đơn hàng</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('Order');
-            }}
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 5,
-            }}>
-            <Image
-              source={require('../assets/icons/arrow-right.png')}
-              style={styles.contentArrow}
-            />
-          </TouchableOpacity>
-        </View>
-        <Divider style={styles.divider} />
-        <View style={styles.contentContaier}>
-          <View style={styles.contentRow}>
-            <Image
-              source={require('../assets/icons/heart.png')}
-              style={styles.contentIcon}
-            />
-            <Text style={styles.contentTilte}>Danh sách yêu thích</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('Wishlist');
-            }}
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 5,
-            }}>
-            <Image
-              source={require('../assets/icons/arrow-right.png')}
-              style={styles.contentArrow}
-            />
-          </TouchableOpacity>
-        </View>
-        <Divider style={styles.divider} />
-        <View style={styles.contentContaier}>
-          <View style={styles.contentRow}>
-            <Image
-              source={require('../assets/icons/notification.png')}
-              style={styles.contentIcon}
-            />
-            <Text style={styles.contentTilte}>Thông báo</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('Notification');
-            }}
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 5,
-            }}>
-            <Image
-              source={require('../assets/icons/arrow-right.png')}
-              style={styles.contentArrow}
-            />
-          </TouchableOpacity>
-        </View>
-        <Divider style={styles.divider} />
-        <View style={styles.contentContaier}>
-          <View style={styles.contentRow}>
-            <Image
-              source={require('../assets/icons/logout.png')}
-              style={styles.contentIcon}
-            />
-            <Pressable
-              onPress={() => {
-                // navigation.navigate('Login');
-                setVisible(true);
-              }}>
-              <Text style={styles.contentTilte}>Đăng xuất</Text>
+      {login ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollview}
+          // eslint-disable-next-line react-native/no-inline-styles
+          contentContainerStyle={{
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View style={[styles.imageProfile]}>
+            <Pressable onPress={handleImagePress}>
+              <Image
+                source={
+                  userData?.avatar
+                    ? {uri: userData.avatar}
+                    : require('../assets/images/profile.png')
+                }
+                style={styles.image}
+                resizeMode="cover"
+              />
             </Pressable>
+
+            <Image
+              source={require('../assets/icons/editIcon.png')}
+              style={styles.icon}
+            />
           </View>
+          <Text style={styles.title}>{userData?.fullName}</Text>
+          <View style={styles.contentContaier}>
+            <View style={styles.contentRow}>
+              <Image
+                source={require('../assets/icons/user-edit.png')}
+                style={styles.contentIcon}
+              />
+              <Text style={styles.contentTilte}>Thông tin cá nhân</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('ProfileUser', {
+                  userData: userData,
+                });
+              }}
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 5,
+              }}>
+              <Image
+                source={require('../assets/icons/arrow-right.png')}
+                style={styles.contentArrow}
+              />
+            </TouchableOpacity>
+          </View>
+          <Divider style={styles.divider} />
+          <View style={styles.contentContaier}>
+            <View style={styles.contentRow}>
+              <Image
+                source={require('../assets/icons/setting.png')}
+                style={styles.contentIcon}
+              />
+              <Text style={styles.contentTilte}>Lịch sử đơn hàng</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('HistoryPage');
+              }}
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 5,
+              }}>
+              <Image
+                source={require('../assets/icons/arrow-right.png')}
+                style={styles.contentArrow}
+              />
+            </TouchableOpacity>
+          </View>
+          <Divider style={styles.divider} />
+          <View style={styles.contentContaier}>
+            <View style={styles.contentRow}>
+              <Image
+                source={require('../assets/icons/heart.png')}
+                style={styles.contentIcon}
+              />
+              <Text style={styles.contentTilte}>Danh sách yêu thích</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('Yêu thích');
+              }}
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 5,
+              }}>
+              <Image
+                source={require('../assets/icons/arrow-right.png')}
+                style={styles.contentArrow}
+              />
+            </TouchableOpacity>
+          </View>
+          <Divider style={styles.divider} />
+          <View style={styles.contentContaier}>
+            <View style={styles.contentRow}>
+              <Image
+                source={require('../assets/icons/notification.png')}
+                style={styles.contentIcon}
+              />
+              <Text style={styles.contentTilte}>Thông báo</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('Notification');
+              }}
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 5,
+              }}>
+              <Image
+                source={require('../assets/icons/arrow-right.png')}
+                style={styles.contentArrow}
+              />
+            </TouchableOpacity>
+          </View>
+          <Divider style={styles.divider} />
+          <View style={styles.contentContaier}>
+            <View style={styles.contentRow}>
+              <Image
+                source={require('../assets/icons/logout.png')}
+                style={styles.contentIcon}
+              />
+              <Pressable
+                onPress={() => {
+                  // navigation.navigate('Login');
+                  setVisible(true);
+                }}>
+                <Text style={styles.contentTilte}>Đăng xuất</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      ) : (
+        <View style={styles.login}>
+          <Pressable
+            onPress={() => {
+              navigation.navigate('Login');
+            }}>
+            <Text style={styles.contentTilte}>Đăng nhập</Text>
+          </Pressable>
         </View>
-      </ScrollView>
+      )}
+
       <Toast />
       <Modal
         style={styles.modal}
@@ -222,7 +308,12 @@ const UserManager = ({navigation}: any) => {
               <TouchableOpacity
                 style={styles.buttonLogout}
                 onPress={() => {
-                  navigation.navigate('Home');
+                  logout();
+                  AsyncStorage.removeItem('token').then(() => {
+                    // @ts-ignore
+                    navigation.navigate('Home');
+                    setVisible(false);
+                  });
                 }}>
                 <Text style={styles.title}>Có</Text>
               </TouchableOpacity>
@@ -230,6 +321,12 @@ const UserManager = ({navigation}: any) => {
           </View>
         </View>
       </Modal>
+      <Spinner
+        visible={spining}
+        textContent={'Đang tải...'}
+        textStyle={styles.spinnerTextStyle}
+        overlayColor="rgba(255, 255, 255, 0.5)"
+      />
     </View>
   );
 };
@@ -239,6 +336,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  spinnerTextStyle: {
+    color: 'black',
   },
   button: {
     flexDirection: 'row',
@@ -348,6 +448,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     alignItems: 'center',
     lineHeight: 30,
+  },
+  login: {
+    width: '90%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    height: 60,
+    marginTop: 10,
+    alignItems: 'center',
+    lineHeight: 30,
+    backgroundColor: '#ccc',
+    borderRadius: 12,
   },
   contentRow: {
     flexDirection: 'row',

@@ -22,7 +22,7 @@ import validator from 'validator';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {launchImageLibrary} from 'react-native-image-picker';
 
-const ProifilePage = () => {
+const ProifilePage = ({navigation}: any) => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +33,6 @@ const ProifilePage = () => {
   const [avatar, setAvatar] = useState('');
   const [gender, setGender] = useState('');
   // const [count, setCount] = useState(60);
-  const navigation = useNavigation();
   const [visible, setVisible] = React.useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const handleDateChange = (event: any, selectedDate: Date | undefined) => {
