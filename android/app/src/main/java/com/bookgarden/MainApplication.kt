@@ -34,10 +34,7 @@ class MainApplication : Application(), ReactApplication {
         override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
         override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
         override
-        protected void onCreate(Bundle savedInstanceState) {
-            SplashScreen.show(this);  // here
-            super.onCreate(savedInstanceState);
-        }
+       
       }
 
   override val reactHost: ReactHost

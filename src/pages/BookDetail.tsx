@@ -173,7 +173,7 @@ const BookDetail = ({navigation, route}: any) => {
           setVisibleModal(false);
           setBuyNow(false);
         }
-        if (cart.length > 0) {
+        if (cart.length) {
           navigation.navigate('OrderPage', {
             buyNow: detailBook,
             buyQuantity: quantity,

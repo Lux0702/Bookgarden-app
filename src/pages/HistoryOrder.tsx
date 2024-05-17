@@ -348,13 +348,13 @@ const HistoryPage = ({navigation, route}: any) => {
           <ContentTab orderItem={Pending} navigation={navigation} />
         </TabView.Item>
         <TabView.Item style={{backgroundColor: '#ccc', width: '100%'}}>
-          <ContentTab orderItem={Processing} />
+          <ContentTab orderItem={Processing} navigation={navigation} />
         </TabView.Item>
         <TabView.Item style={{backgroundColor: '#ccc', width: '100%'}}>
-          <ContentTab orderItem={Delivering} />
+          <ContentTab orderItem={Delivering} navigation={navigation} />
         </TabView.Item>
         <TabView.Item style={{backgroundColor: '#ccc', width: '100%'}}>
-          <ContentTab orderItem={Delivered} />
+          <ContentTab orderItem={Delivered} navigation={navigation} />
         </TabView.Item>
         <TabView.Item style={{backgroundColor: '#ccc', width: '100%'}}>
           <ContentTab orderItem={Canceled} />
@@ -464,7 +464,7 @@ const ContentTab = ({orderItem, navigation}: any) => {
                         handleBookPress(order.book._id);
                       }}>
                       <View style={styles.carousell}>
-                        <View style={styles.BookDetail}>
+                        <View style={styles.bbookDetail}>
                           <Image
                             style={styles.imagebook}
                             source={
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     marginLeft: 20,
   },
-  BookDetail: {
+  bbookDetail: {
     flexDirection: 'row',
     width: 365,
     height: 200,

@@ -41,7 +41,8 @@ const ProfileUser = ({navigation, route}: any) => {
   const [isValidEmail, setIsValidEmail] = useState(false);
   const [isValidPhone, setIsValiPhone] = useState(false);
   const [birthday, setBirthday] = useState('');
-  const [date, setDate] = useState(userData?.birthday);
+  const [date, setDate] = useState(new Date(userData?.birthday || ''));
+
   const [avatar, setAvatar] = useState(userData?.avatar);
   const [Isavatar, setIsAvatar] = useState(false);
 

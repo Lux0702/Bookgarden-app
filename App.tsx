@@ -38,7 +38,6 @@ import AddAddress from './src/pages/AddAddress';
 import EditAddress from './src/pages/EditAddress';
 import {navigationRef} from './src/utils/RootNavigation';
 import messaging from '@react-native-firebase/messaging';
-import SplashScreen from 'react-native-splash-screen';
 
 // type RootStackParamList = {
 //   BookDetail: {_id: string};
@@ -137,9 +136,7 @@ const App = () => {
   //   };
   //   requestUserPermission();
   // }, []);
-  useEffect(() => {
-    SplashScreen?.hide();
-  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <NavigationContainer ref={navigationRef}>
